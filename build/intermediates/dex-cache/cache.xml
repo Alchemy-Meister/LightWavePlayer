@@ -1,12 +1,2 @@
 <?xml version="1.0" encoding="utf-8"?>
-<items version="2" >
-
-    <item
-        jar="/Users/meister/Git/Timber/app/build/intermediates/incremental-classes/debug/instant-run-bootstrap.jar"
-        jumboMode="true"
-        revision="23.0.2"
-        sha1="ebd714fc8e0759e908a99b1f9f095a2df2827f14">
-        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/instant-run-bootstrap_2d548cda981c42d26ce1a36f09c13accc4793f85/classes.dex" />
-    </item>
-
-</items>
+<items version="2" />

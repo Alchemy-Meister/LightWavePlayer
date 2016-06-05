@@ -15,6 +15,7 @@
 
 package com.naman14.timber.activities;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -25,6 +26,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentManager;
 import android.view.Menu;
@@ -39,6 +41,7 @@ import com.naman14.timber.MusicPlayer;
 import com.naman14.timber.MusicService;
 import com.naman14.timber.R;
 import com.naman14.timber.listeners.MusicStateListener;
+import com.naman14.timber.permissions.Nammu;
 import com.naman14.timber.slidinguppanel.SlidingUpPanelLayout;
 import com.naman14.timber.subfragments.QuickControlsFragment;
 import com.naman14.timber.utils.Helpers;

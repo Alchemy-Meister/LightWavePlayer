@@ -128,5 +128,8 @@
     <string name="connected_to" translatable="false">Connected to %1$s.</string>
     <string name="connection_successful" translatable="false">Connection Successful</string>
     <string name="connection_failed" translatable="false">Connection failed</string>
+    <string name="ok" translatable="false">Ok</string>
+    <string name="record_audio_permission_message" translatable="false">%1$s needs access record your music player audio to
+        send processed information to your Light wave device.</string>
 
 </resources>

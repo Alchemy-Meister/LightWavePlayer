@@ -14,6 +14,7 @@
 
 package com.naman14.timber.fragments;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -21,15 +22,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
+import android.support.annotation.NonNull;
+import android.util.Log;
 import android.view.View;
 
 import com.afollestad.appthemeengine.ATE;
@@ -39,10 +43,15 @@ import com.afollestad.appthemeengine.prefs.ATEColorPreference;
 import com.afollestad.materialdialogs.color.ColorChooserDialog;
 import com.naman14.timber.R;
 import com.naman14.timber.activities.SettingsActivity;
+import com.naman14.timber.permissions.Nammu;
+import com.naman14.timber.permissions.RuntimePermissionsHelper;
 import com.naman14.timber.utils.Constants;
 import com.naman14.timber.utils.NavigationUtils;
 import com.naman14.timber.utils.PreferencesUtility;
+import com.naman14.timber.utils.TimberUtils;
 import com.naman14.timber.widgets.BluetoothListPreference;
+
+import static com.naman14.timber.MusicPlayer.mService;
 
 public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -56,6 +65,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     private static final String KEY_ENABLE_BLUETOOTH = "enable_bluetooth";
     private static final String KEY_BLUETOOTH_DEVICE = "bluetooth_mac";
     private static final String KEY_BLUETOOTH_SUMMARY = "bluetooth_summary";
+    private static final int REQUEST_AUDIO_RECORD = 123;
     Preference nowPlayingSelector;
     SwitchPreference toggleAnimations;
     ListPreference themePreference, startPagePreference;
@@ -69,6 +79,8 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     private BroadcastReceiver mReceiver;
 
     private AsyncTask<Void, Void, Integer> updateTask;
+    private boolean enableDevice = false;
+    private boolean alreadyAskedForPermission = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -254,6 +266,15 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                 return true;
             }
         });
+
+        if(TimberUtils.isMarshmallow()) {
+            if(!Nammu.checkPermission(Manifest.permission.RECORD_AUDIO)) {
+                if(!alreadyAskedForPermission) {
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_AUDIO_RECORD);
+                }
+            }
+
+        }
     }
 
     private boolean isBluetoothEnabled() {
@@ -279,8 +300,10 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
             bluetoothDevicePreference.emptyDeviceList();
         } else if(isBluetoothEnabled()) {
             bluetoothPreference.setChecked(true);
-            bluetoothDevicePreference.setEnabled(true);
-            preferenceUpdateTask();
+            if(enableDevice) {
+                bluetoothDevicePreference.setEnabled(true);
+                preferenceUpdateTask();
+            }
         }
     }
 
@@ -288,6 +311,9 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     public void onResume() {
         super.onResume();
         this.getActivity().registerReceiver(mReceiver, iFilter);
+        if(RuntimePermissionsHelper.hasPermissions(this.getActivity(), Manifest.permission.RECORD_AUDIO)) {
+            enableDevice = true;
+        }
         updateBluetoothPreferences();
     }
 
@@ -324,5 +350,34 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString(KEY_BLUETOOTH_SUMMARY, bluetoothDevicePreference.getSummary().toString());
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_AUDIO_RECORD:
+                if (grantResults.length > 0 && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    Log.d("PERMISSION", "DISABLED");
+                    enableDevice = false;
+                    bluetoothDevicePreference.setEnabled(false);
+                    RuntimePermissionsHelper.showMessageOKCancel(getResources().getString(
+                            R.string.record_audio_permission_message,
+                            getResources().getString(R.string.app_name)), SettingsFragment.this.getActivity());
+                    alreadyAskedForPermission = false;
+
+                } else if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    alreadyAskedForPermission = false;
+                    if (mService != null) {
+                        try {
+                            mService.initializeVisualizer();
+                            enableDevice = true;
+                            bluetoothDevicePreference.setEnabled(true);
+                        } catch (RemoteException ignored) {}
+                    }
+                }
+                break;
+            default:
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
     }
 }

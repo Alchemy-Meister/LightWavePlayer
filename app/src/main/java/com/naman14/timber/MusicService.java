@@ -39,6 +39,7 @@ import android.media.AudioManager;
 import android.media.AudioManager.OnAudioFocusChangeListener;
 import android.media.MediaPlayer;
 import android.media.audiofx.AudioEffect;
+import android.media.audiofx.Visualizer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -244,7 +245,9 @@ public class MusicService extends Service {
     private BluetoothConnector connector;
     private BluetoothConnector.BluetoothSocketWrapper socket;
     private Thread bluetoothThread;
+    private Visualizer visualizer;
 
+    // HACK checks if bluetooth device is already connected.
     public boolean isDeviceConnected(String address) {
         if(socket != null && address != null) {
             return socket.getRemoteDeviceAddress().equals(address);
@@ -252,6 +255,7 @@ public class MusicService extends Service {
         return false;
     }
 
+    // HACK bluetooth connection initializer
     public boolean connectToDevice(BluetoothDevice device, boolean secure, List<ParcelUuid> candidates)
     {
         List<UUID> uuidCandidates = null;
@@ -285,6 +289,32 @@ public class MusicService extends Service {
         }
     }
 
+    // HACK visualizer initializer
+    public void initializeVisualizer() {
+        if(visualizer == null) {
+            visualizer = new Visualizer(mPlayer.getAudioSessionId());
+            visualizer.setCaptureSize(Visualizer.getCaptureSizeRange()[1]);
+
+            Visualizer.OnDataCaptureListener captureListener = new Visualizer.OnDataCaptureListener() {
+                @Override
+                public void onWaveFormDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
+                    // DO NOTHING
+                }
+
+                @Override
+                public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
+                    Log.d(TAG, "FTT UPDATE CALLING");
+                }
+            };
+            visualizer.setDataCaptureListener(captureListener,
+                    Visualizer.getMaxCaptureRate() / 2, false, true);
+
+            if(isPlaying() && socket != null) {
+                visualizer.setEnabled(true);
+            }
+        }
+    }
+
     @Override
     public IBinder onBind(final Intent intent) {
         if (D) Log.d(TAG, "Service bound, intent = " + intent);
@@ -308,6 +338,12 @@ public class MusicService extends Service {
             return true;
         }
         stopSelf(mServiceStartId);
+
+        // HACK release visualizer since service is not being used.
+        if(visualizer != null) {
+            visualizer.setEnabled(false);
+            visualizer.release();
+        }
 
         return true;
     }
@@ -354,6 +390,13 @@ public class MusicService extends Service {
 
         mPlayer = new MultiPlayer(this);
         mPlayer.setHandler(mPlayerHandler);
+
+        // HACK bind MediaPlayer with a visualizer to get audio session for fft data extraction.
+        try {
+            initializeVisualizer();
+        } catch(RuntimeException e) {
+            if(D) Log.d(TAG, "Visualizer init failed, record audio permission missing.");
+        }
 
         // Initialize the intent filter and each action
         final IntentFilter filter = new IntentFilter();
@@ -676,6 +719,11 @@ public class MusicService extends Service {
         if (D) Log.d(TAG, "Stopping playback, goToIdle = " + goToIdle);
         if (mPlayer.isInitialized()) {
             mPlayer.stop();
+
+            // HACK if enabled, stops the visualizer.
+            if (visualizer != null) {
+                visualizer.setEnabled(false);
+            }
         }
         mFileToPlay = null;
         closeCursor();
@@ -1907,6 +1955,12 @@ public class MusicService extends Service {
             }
 
             mPlayer.start();
+
+            // HACK if enabled, resumes the visualizer.
+            if (visualizer != null && socket != null) {
+                visualizer.setEnabled(true);
+            }
+
             mPlayerHandler.removeMessages(FADEDOWN);
             mPlayerHandler.sendEmptyMessage(FADEUP);
 
@@ -1932,6 +1986,12 @@ public class MusicService extends Service {
                 sendBroadcast(intent);
 
                 mPlayer.pause();
+
+                // HACK if enabled, pauses the visualizer.
+                if (visualizer != null) {
+                    visualizer.setEnabled(false);
+                }
+
                 notifyChange(META_CHANGED);
                 setIsSupposedToBePlaying(false, true);
             }
@@ -2745,6 +2805,11 @@ public class MusicService extends Service {
         public boolean connectToDevice(BluetoothDevice device, boolean secure, List<ParcelUuid> candidates)
         {
             return mService.get().connectToDevice(device, secure, candidates);
+        }
+
+        @Override
+        public void initializeVisualizer() {
+            mService.get().initializeVisualizer();
         }
 
     }

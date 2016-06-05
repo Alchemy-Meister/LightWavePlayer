@@ -53,5 +53,6 @@ interface ITimberService
     void setLockscreenAlbumArt(boolean enabled);
     boolean isDeviceConnected(String address);
     boolean connectToDevice(in BluetoothDevice device, boolean secure, in List<ParcelUuid> candidates);
+    void initializeVisualizer();
 }
 
