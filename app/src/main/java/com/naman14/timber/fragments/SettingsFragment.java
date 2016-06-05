@@ -26,14 +26,12 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
 import android.support.annotation.NonNull;
-import android.util.Log;
 import android.view.View;
 
 import com.afollestad.appthemeengine.ATE;
@@ -50,8 +48,6 @@ import com.naman14.timber.utils.NavigationUtils;
 import com.naman14.timber.utils.PreferencesUtility;
 import com.naman14.timber.utils.TimberUtils;
 import com.naman14.timber.widgets.BluetoothListPreference;
-
-import static com.naman14.timber.MusicPlayer.mService;
 
 public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -357,7 +353,6 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
         switch (requestCode) {
             case REQUEST_AUDIO_RECORD:
                 if (grantResults.length > 0 && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                    Log.d("PERMISSION", "DISABLED");
                     enableDevice = false;
                     bluetoothDevicePreference.setEnabled(false);
                     RuntimePermissionsHelper.showMessageOKCancel(getResources().getString(
@@ -367,13 +362,8 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
 
                 } else if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     alreadyAskedForPermission = false;
-                    if (mService != null) {
-                        try {
-                            mService.initializeVisualizer();
-                            enableDevice = true;
-                            bluetoothDevicePreference.setEnabled(true);
-                        } catch (RemoteException ignored) {}
-                    }
+                    enableDevice = true;
+                    bluetoothDevicePreference.setEnabled(true);
                 }
                 break;
             default:

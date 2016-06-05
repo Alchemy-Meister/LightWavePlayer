@@ -54,5 +54,6 @@ interface ITimberService
     boolean isDeviceConnected(String address);
     boolean connectToDevice(in BluetoothDevice device, boolean secure, in List<ParcelUuid> candidates);
     void initializeVisualizer();
+    void enableVisualizer(boolean enable);
 }
 

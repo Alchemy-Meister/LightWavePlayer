@@ -274,6 +274,9 @@ public class MusicService extends Service {
                 Log.d(TAG, "Error, closing previous connection");
             } finally {
                 socket = null;
+                if(visualizer != null) {
+                    visualizer.setEnabled(false);
+                }
             }
         }
 
@@ -303,15 +306,23 @@ public class MusicService extends Service {
 
                 @Override
                 public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
-                    Log.d(TAG, "FTT UPDATE CALLING");
+                    Log.d(TAG, "FFT Length: " + String.valueOf(bytes.length));
                 }
             };
             visualizer.setDataCaptureListener(captureListener,
                     Visualizer.getMaxCaptureRate() / 2, false, true);
+        }
+        Log.d(TAG, "is playing: " + String.valueOf(isPlaying()));
+        Log.d(TAG, "socket:" + String.valueOf(socket));
+        if(isPlaying() && socket != null) {
+            visualizer.setEnabled(true);
+        }
+    }
 
-            if(isPlaying() && socket != null) {
-                visualizer.setEnabled(true);
-            }
+    // Hack enable or disable visualizer.
+    public void enableVisualizer(boolean enable) {
+        if(visualizer != null) {
+            visualizer.setEnabled(enable);
         }
     }
 
@@ -2547,6 +2558,7 @@ public class MusicService extends Service {
                 mHandler.sendEmptyMessage(TRACK_WENT_TO_NEXT);
             } else {
                 mService.get().mWakeLock.acquire(30000);
+                mService.get().enableVisualizer(false);
                 mHandler.sendEmptyMessage(TRACK_ENDED);
                 mHandler.sendEmptyMessage(RELEASE_WAKELOCK);
             }
@@ -2810,6 +2822,11 @@ public class MusicService extends Service {
         @Override
         public void initializeVisualizer() {
             mService.get().initializeVisualizer();
+        }
+
+        @Override
+        public void enableVisualizer(boolean enable) {
+            mService.get().enableVisualizer(enable);
         }
 
     }

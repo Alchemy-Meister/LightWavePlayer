@@ -1,2 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
-<items version="2" />
+<items version="2" >
+
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/incremental-classes/debug/instant-run-bootstrap.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="799d975334a2fa0833556fc12ea7e743cc5877b7">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/instant-run-bootstrap_2d548cda981c42d26ce1a36f09c13accc4793f85/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Library/Android/sdk/build-tools/23.0.2/renderscript/lib/renderscript-v8.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="762016371811e15a66e97cf27f3e852bf287aaf3">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/renderscript-v8_5307cebb1536a5e93c5ec9a79a52f1441cf44fe5/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.github.afollestad.material-dialogs/commons/0.8.5.3/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="15ee5b06fdfdbe3ad565bc56eff1e70231334d59">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.github.afollestad.material-dialogs-commons-0.8.5.3_1690257136d4f1dea18c5ef3ccd7ad15c94f3671/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/palette-v7/23.4.0/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="51518e8e8f97c314a243d9def0ded91d385b6a1e">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-palette-v7-23.4.0_e358c35f8e29eb4d937553934bb12dab066eaf9a/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit/retrofit/1.9.0/a681c044244d9fc375198588297a39ba78028423/retrofit-1.9.0.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="a681c044244d9fc375198588297a39ba78028423">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/retrofit-1.9.0_3ede31acf2637a6c103cd75b7060dfb4abbefb07/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/support-vector-drawable/23.4.0/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="c2c594cace5d83a3227b2b6e658ecbfd586d3ed9">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-support-vector-drawable-23.4.0_ab0c4d394c1dc271dc7a3833a01013b63b184dd0/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/recyclerview-v7/23.4.0/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="ec75036c3c52e451d0cde50a5aedaf5fd32354a0">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-recyclerview-v7-23.4.0_a66892e109d116dbecf539b6066779264405a6ab/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/support-v4/23.4.0/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="67bd36ee9340ec7c254108936ad16b24bed160cc">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-support-v4-23.4.0_331086ac246526e44d2e0cf3548c6ef5a3206108/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/percent/23.4.0/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="91c2541305eec5a688f3a60529d974e48f77d760">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-percent-23.4.0_f0063293b1585f274c031d1de7039b3713cf73b3/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp/okhttp-urlconnection/2.3.0/4f12ec1e1455909e1f0b8530c719c90b2d01745/okhttp-urlconnection-2.3.0.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="04f12ec1e1455909e1f0b8530c719c90b2d01745">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/okhttp-urlconnection-2.3.0_92b61a2deca2791594139996dad65cce66eb09cb/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/de.Maxr1998/track-selector-lib/1.1/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="f14a57ab20f539de366b6600fe150d8794ed7a39">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/de.Maxr1998-track-selector-lib-1.1_6f37168e1b7d2aa3178b876c89d6aa4819dafc65/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/design/23.4.0/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="5326d9a850d491714fef8cbfaa9ea3416f0bf0d2">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-design-23.4.0_0122cfd5598467074c9c7a8dd49dfb6e1d89777a/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.4/695b63d702f505b9b916e02272e3b6381bade7f/gson-2.4.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="0695b63d702f505b9b916e02272e3b6381bade7f">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/gson-2.4_2a9627d21c8afa759b58c3c2cbf537750b48bb3e/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/incremental-runtime-classes/debug/instant-run.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="fd666aa3159354907dd5aee7b78faf1a7330be14">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/instant-run_520ea011291d75476530b768c4c4a64adf479005/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/net.steamcrafted/materialiconlib/1.0.3/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="28d798851bb77283f4c0363b5baf5c22bbe83a82">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/net.steamcrafted-materialiconlib-1.0.3_c969aa296875ec61ffac19c63740ded64da88db6/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/support-v4/23.4.0/jars/libs/internal_impl-23.4.0.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="ea3c07504d2c8f4b13aa17c45c1b68ed9c1c3674">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/internal_impl-23.4.0_283bfc40d8d21a651599f0b44d9dda8537cf5165/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.github.naman14/app-theme-engine/0.5.1/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="42d7b9d69f47a74b3be48c02001267165fc27b69">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.github.naman14-app-theme-engine-0.5.1_d0519cb60e37954372d8cd69bac011a0d78b1710/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/animated-vector-drawable/23.4.0/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="de4db3785756bfb0915a9f59a9b3f2fea7407be4">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-animated-vector-drawable-23.4.0_9fc90ef824ce959104f376d112aa1e624d9fc11c/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/.gradle/caches/modules-2/files-2.1/com.nostra13.universalimageloader/universal-image-loader/1.9.4/dd9eeb557650c4ad7394df23f0f5cf27a7cfc697/universal-image-loader-1.9.4.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="dd9eeb557650c4ad7394df23f0f5cf27a7cfc697">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/universal-image-loader-1.9.4_8d1ed212f672f2f57b4f778b8c68b395bf3595b4/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/cardview-v7/23.4.0/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="d9ecde39b460470e655de6e47c05573d2d5a8bfb">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-cardview-v7-23.4.0_b0ef1ff64fe032ab2af47ac9972fd463ac0acfea/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/.gradle/caches/modules-2/files-2.1/com.squareup.okio/okio/1.3.0/1b355f73402020c5a0dcca58affc3ec3dfeabac1/okio-1.3.0.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="1b355f73402020c5a0dcca58affc3ec3dfeabac1">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/okio-1.3.0_3a2c3f87c657a59cde0b4295d672bc1a957af706/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp/okhttp/2.3.0/2e7bc7033dc2c8423e661224171b3133fb155b28/okhttp-2.3.0.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="2e7bc7033dc2c8423e661224171b3133fb155b28">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/okhttp-2.3.0_9a9325f750cf118bdd45021cdde4f19130077885/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/me.zhanghai.android.materialprogressbar/library/1.1.6/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="ab3193b438e37f7b0a634cc2dfebbf92892ea90c">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/me.zhanghai.android.materialprogressbar-library-1.1.6_a98234fdc8bdfc011dc63451145c04d6b888f39a/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.github.afollestad.material-dialogs/core/0.8.5.3/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="8174013f25a7d1f9bb4e50e2e3dc11254dee1442">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.github.afollestad.material-dialogs-core-0.8.5.3_af999e95d03f7ebbf21cf61c31de3ee4f9b09a73/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Library/Android/sdk/extras/android/m2repository/com/android/support/support-annotations/23.4.0/support-annotations-23.4.0.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="ffbe55fdb2bb456b1485831706a9eac3300bb6b8">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/support-annotations-23.4.0_00976f3c77c9279c725f2911938ccc9848edac3f/classes.dex" />
+    </item>
+    <item
+        jar="/Users/meister/Git/Timber/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.4.0/jars/classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="548f06de403a9409f00554b3ee12a9fdea0e236c">
+        <dex dex="/Users/meister/Git/Timber/app/build/intermediates/transforms/dex/debug/folders/1000/10/com.android.support-appcompat-v7-23.4.0_a030dd2797096b4cc0520348fe1b0855fd9015e1/classes.dex" />
+    </item>
+
+</items>
