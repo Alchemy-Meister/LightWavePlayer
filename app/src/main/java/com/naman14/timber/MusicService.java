@@ -243,8 +243,9 @@ public class MusicService extends Service {
     private ContentObserver mMediaStoreObserver;
 
     private BluetoothConnector connector;
+    private BluetoothDevice device;
+    private boolean tryReconnection = true;
     private BluetoothConnector.BluetoothSocketWrapper socket;
-    private Thread bluetoothThread;
     private Visualizer visualizer;
 
     // HACK checks if bluetooth device is already connected.
@@ -285,11 +286,25 @@ public class MusicService extends Service {
 
         try {
             socket = connector.connect();
+            this.device = device;
             return true;
         } catch (IOException e) {
+            this.device = null;
             Log.d(TAG, "Device unreachable");
             return false;
         }
+    }
+
+    // HACK reconnect bluetooth after connection lost.
+    private boolean reconnect() {
+        if(device != null) {
+            boolean connected = this.connectToDevice(device, true, null);
+            if(connected && visualizer != null) {
+                visualizer.setEnabled(true);
+            }
+            return true;
+        }
+        return false;
     }
 
     // HACK visualizer initializer
@@ -305,15 +320,47 @@ public class MusicService extends Service {
                 }
 
                 @Override
-                public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
-                    Log.d(TAG, "FFT Length: " + String.valueOf(bytes.length));
+                public void onFftDataCapture(final Visualizer visualizer, final byte[] bytes, int samplingRate) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if(socket != null) {
+                                byte[] sendBytes = String.valueOf(bytes.length).getBytes();
+                                int bytesSent = 0;
+                                int chunkSize = 2;
+                                int remaining;
+                                while(bytesSent != sendBytes.length) {
+                                    remaining = sendBytes.length - bytesSent;
+                                    try {
+                                        if(remaining >= chunkSize) {
+                                            socket.getOutputStream().write(sendBytes, bytesSent, chunkSize);
+                                            bytesSent += chunkSize;
+                                        } else {
+                                            socket.getOutputStream().write(sendBytes, bytesSent, remaining);
+                                            bytesSent += remaining;
+                                        }
+                                    } catch (IOException e) {
+                                        if(tryReconnection) {
+                                            Log.d(TAG, "critical zone entered");
+                                            tryReconnection = false;
+                                            if(visualizer !=  null) {
+                                                visualizer.setEnabled(false);
+                                            }
+                                            boolean connected = MusicService.this.reconnect();
+                                            Log.d(TAG, "Reconnected: " + String.valueOf(connected));
+                                            tryReconnection = true;
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }).start();
                 }
             };
             visualizer.setDataCaptureListener(captureListener,
                     Visualizer.getMaxCaptureRate() / 2, false, true);
         }
-        Log.d(TAG, "is playing: " + String.valueOf(isPlaying()));
-        Log.d(TAG, "socket:" + String.valueOf(socket));
         if(isPlaying() && socket != null) {
             visualizer.setEnabled(true);
         }
