@@ -88,7 +88,8 @@ public class BluetoothListPreference extends DialogPreference {
                                 @Override
                                 protected Boolean doInBackground(Void... params) {
                                     try {
-                                       return mService.connectToDevice(device, true, null);
+                                        mService.interruptReconnect(true);
+                                        return mService.connectToDevice(device, true, null);
                                     } catch(RemoteException e) {
                                         return false;
                                     }

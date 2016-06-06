@@ -249,8 +249,10 @@ public class MusicService extends Service {
     public static final String CONNECTION_REESTABLISHED = "com.naman14.timber.connectionEstablished";
     private static final int RECONNECTION_ATTEMPT = 5;
 
+    private Thread bluetoothConnectionChecker = null;
     private BluetoothDevice device;
     private volatile boolean tryReconnection = true;
+    private volatile boolean cancelReconnect = false;
     private volatile boolean isConnected = false;
     private volatile BluetoothConnector.BluetoothSocketWrapper socket;
     private BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver() {
@@ -314,6 +316,9 @@ public class MusicService extends Service {
                 if(visualizer != null) {
                     visualizer.setEnabled(false);
                 }
+                if(bluetoothConnectionChecker != null && bluetoothConnectionChecker.isAlive()) {
+                    bluetoothConnectionChecker.interrupt();
+                }
             }
         }
 
@@ -325,6 +330,11 @@ public class MusicService extends Service {
             this.device = device;
             this.tryReconnection = true;
             this.isConnected = true;
+            this.cancelReconnect = false;
+            if(visualizer != null && !visualizer.getEnabled()) {
+                bluetoothConnectionChecker = initializeBluetoothConnectionChecker();
+                bluetoothConnectionChecker.start();
+            }
             return true;
         } catch (IOException e) {
             this.device = null;
@@ -349,9 +359,9 @@ public class MusicService extends Service {
 
                 attempted++;
                 if(D) Log.d(TAG, "Device reconnection attempt " + String.valueOf(attempted));
-            } while(!connected && attempted < RECONNECTION_ATTEMPT);
+            } while(!connected && attempted < RECONNECTION_ATTEMPT && !cancelReconnect);
             if (connected) {
-                if(visualizer != null) {
+                if(visualizer != null && visualizer.getEnabled()) {
                     visualizer.setEnabled(true);
                 }
                 final Intent connectionReestablished = new Intent(CONNECTION_REESTABLISHED);
@@ -381,6 +391,11 @@ public class MusicService extends Service {
             }
 
         }
+    }
+
+    public void interruptReconnect(boolean cancel) {
+        this.cancelReconnect = cancel;
+        if(D) Log.d(TAG, "Reconnection canceled");
     }
 
     // HACK visualizer initializer
@@ -455,10 +470,68 @@ public class MusicService extends Service {
         }
     }
 
-    // Hack enable or disable visualizer.
+    // HACK enable or disable visualizer.
     public void enableVisualizer(boolean enable) {
         if(visualizer != null) {
             visualizer.setEnabled(enable);
+        }
+    }
+
+    // HACK initialize bluetooth connection checker thread.
+    private Thread initializeBluetoothConnectionChecker() {
+        return new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(!Thread.currentThread().isInterrupted()) {
+                    try {
+                        if (socket != null && socket.getOutputStream() != null) {
+                            socket.getOutputStream().write(Integer.valueOf(1024).byteValue());
+                        }
+                    } catch (IOException e) {
+                        isConnected = false;
+                        final Intent connectionInterrupted = new Intent(CONNECTION_INTERRUPTED);
+                        sendBroadcast(connectionInterrupted);
+                        if(D) Log.d(TAG, "Idle device connection interrupted.");
+                        handler.post(new Runnable() {
+                            public void run() {
+                                Toast.makeText(
+                                        getApplicationContext(),
+                                        getResources().getString(R.string.connection_interrupted),
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
+                        });
+                        reconnect();
+                        Thread.currentThread().interrupt();
+                    }
+                    try {
+                        Thread.sleep(1000);
+                    } catch(InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                if(D) Log.d(TAG, "Bluetooth connection checker stopped.");
+            }
+        });
+    }
+
+    // HACK starts bluetooth connection checker thread.
+    public void startBluetoothConnectionChecker() {
+        if(bluetoothConnectionChecker != null && bluetoothConnectionChecker.isAlive()) {
+            bluetoothConnectionChecker.interrupt();
+        }
+        if(socket != null) {
+            bluetoothConnectionChecker = initializeBluetoothConnectionChecker();
+            bluetoothConnectionChecker.start();
+        }
+    }
+
+    // HACK stops bluetooth connection checker thread.
+    public void stopBluetoothConnectionChecker() {
+        if(bluetoothConnectionChecker != null && bluetoothConnectionChecker.isAlive()) {
+            bluetoothConnectionChecker.interrupt();
+            bluetoothConnectionChecker = null;
+            if(D) Log.d(TAG, "Bluetooth connection checker stopped.");
         }
     }
 
@@ -491,6 +564,7 @@ public class MusicService extends Service {
             visualizer.setEnabled(false);
             visualizer.release();
         }
+        stopBluetoothConnectionChecker();
 
         return true;
     }
@@ -879,6 +953,7 @@ public class MusicService extends Service {
             // HACK if enabled, stops the visualizer.
             if (visualizer != null) {
                 visualizer.setEnabled(false);
+                startBluetoothConnectionChecker();
             }
         }
         mFileToPlay = null;
@@ -2116,6 +2191,7 @@ public class MusicService extends Service {
             if (visualizer != null && socket != null) {
                 visualizer.setEnabled(true);
             }
+            stopBluetoothConnectionChecker();
 
             mPlayerHandler.removeMessages(FADEDOWN);
             mPlayerHandler.sendEmptyMessage(FADEUP);
@@ -2146,6 +2222,7 @@ public class MusicService extends Service {
                 // HACK if enabled, pauses the visualizer.
                 if (visualizer != null) {
                     visualizer.setEnabled(false);
+                    startBluetoothConnectionChecker();
                 }
 
                 notifyChange(META_CHANGED);
@@ -2704,6 +2781,7 @@ public class MusicService extends Service {
             } else {
                 mService.get().mWakeLock.acquire(30000);
                 mService.get().enableVisualizer(false);
+                mService.get().startBluetoothConnectionChecker();
                 mHandler.sendEmptyMessage(TRACK_ENDED);
                 mHandler.sendEmptyMessage(RELEASE_WAKELOCK);
             }
@@ -2982,6 +3060,16 @@ public class MusicService extends Service {
         @Override
         public void enableReconnect(boolean enable) {
             mService.get().enableReconnect(enable);
+        }
+
+        @Override
+        public void startBluetoothConnectionChecker() {
+            mService.get().startBluetoothConnectionChecker();
+        }
+
+        @Override
+        public void interruptReconnect(boolean cancel) {
+            mService.get().interruptReconnect(cancel);
         }
 
     }

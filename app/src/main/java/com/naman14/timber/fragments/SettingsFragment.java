@@ -319,6 +319,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     public void onResume() {
         super.onResume();
         this.getActivity().registerReceiver(mReceiver, iFilter);
+        updateDeviceSummaryName();
         if(RuntimePermissionsHelper.hasPermissions(this.getActivity(), Manifest.permission.RECORD_AUDIO)) {
             enableDevice = true;
         }
@@ -338,9 +339,14 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
             try {
                 deviceName = mService.getConnectedDeviceName();
             } catch(RemoteException ignored) {}
-            if(deviceName != null && bluetoothDevicePreference != null) {
-                bluetoothDevicePreference.setSummary(
-                        getActivity().getResources().getString(R.string.connected_to, deviceName));
+            if(bluetoothDevicePreference != null) {
+                if(deviceName != null) {
+                    bluetoothDevicePreference.setSummary(
+                            getActivity().getResources().getString(R.string.connected_to, deviceName));
+                } else {
+                    bluetoothDevicePreference.setSummary(
+                            getActivity().getResources().getString(R.string.no_receiver_connected));
+                }
             }
         }
     }

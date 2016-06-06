@@ -57,5 +57,7 @@ interface ITimberService
     void enableVisualizer(boolean enable);
     String getConnectedDeviceName();
     void enableReconnect(boolean enable);
+    void startBluetoothConnectionChecker();
+    void interruptReconnect(boolean cancel);
 }
 
