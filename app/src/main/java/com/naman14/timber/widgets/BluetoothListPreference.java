@@ -101,7 +101,9 @@ public class BluetoothListPreference extends DialogPreference {
                                         Toast.makeText(getContext(), getContext().getResources().getString(R.string.connection_successful),
                                                 Toast.LENGTH_SHORT).show();
                                         BluetoothListPreference.this.setSummary(getContext().getResources().getString(R.string.connected_to, device.getName()));
-                                        BluetoothListPreference.this.getDialog().dismiss();
+                                        if(BluetoothListPreference.this.getDialog() != null) {
+                                            BluetoothListPreference.this.getDialog().dismiss();
+                                        }
                                         if(mService != null) {
                                             try {
                                                 mService.initializeVisualizer();

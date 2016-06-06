@@ -64,6 +64,7 @@ import android.support.v7.app.NotificationCompat;
 import android.support.v7.graphics.Palette;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.naman14.timber.helpers.MediaButtonIntentReceiver;
 import com.naman14.timber.helpers.MusicPlaybackTrack;
@@ -81,6 +82,7 @@ import com.nostra13.universalimageloader.core.ImageLoader;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -242,18 +244,52 @@ public class MusicService extends Service {
     };
     private ContentObserver mMediaStoreObserver;
 
-    private BluetoothConnector connector;
+    // HACK my own variable declaration
+    public static final String CONNECTION_INTERRUPTED = "com.naman14.timber.connectionInterrupted";
+    public static final String CONNECTION_REESTABLISHED = "com.naman14.timber.connectionEstablished";
+    private static final int RECONNECTION_ATTEMPT = 5;
+
     private BluetoothDevice device;
-    private boolean tryReconnection = true;
-    private BluetoothConnector.BluetoothSocketWrapper socket;
+    private volatile boolean tryReconnection = true;
+    private volatile boolean isConnected = false;
+    private volatile BluetoothConnector.BluetoothSocketWrapper socket;
+    private BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
+                switch(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1)) {
+                    case BluetoothAdapter.STATE_OFF:
+                        enableReconnect(false);
+                        isConnected = false;
+                        break;
+                }
+            }
+        }
+    };
+
     private Visualizer visualizer;
+    private Handler handler;
 
     // HACK checks if bluetooth device is already connected.
     public boolean isDeviceConnected(String address) {
         if(socket != null && address != null) {
-            return socket.getRemoteDeviceAddress().equals(address);
+            return socket.getRemoteDeviceAddress().equals(address) && this.isConnected;
         }
         return false;
+    }
+
+    public void enableReconnect(boolean enable) {
+        this.tryReconnection = enable;
+    }
+
+    // HACK get current connected device name.
+    public String getConnectedDeviceName() {
+        if(socket != null && this.isConnected)
+        {
+            return socket.getRemoteDeviceName();
+        }
+        return null;
     }
 
     // HACK bluetooth connection initializer
@@ -272,7 +308,7 @@ public class MusicService extends Service {
             try {
                 socket.close();
             } catch (IOException e) {
-                Log.d(TAG, "Error, closing previous connection");
+                if(D) Log.d(TAG, "Error, closing previous connection");
             } finally {
                 socket = null;
                 if(visualizer != null) {
@@ -281,30 +317,70 @@ public class MusicService extends Service {
             }
         }
 
-        connector = new BluetoothConnector(device, secure, BluetoothAdapter.getDefaultAdapter(),
+        BluetoothConnector connector = new BluetoothConnector(device, secure, BluetoothAdapter.getDefaultAdapter(),
                 uuidCandidates);
 
         try {
             socket = connector.connect();
             this.device = device;
+            this.tryReconnection = true;
+            this.isConnected = true;
             return true;
         } catch (IOException e) {
             this.device = null;
-            Log.d(TAG, "Device unreachable");
+            this.isConnected = false;
+            if(D) Log.d(TAG, "Device unreachable");
             return false;
         }
     }
 
     // HACK reconnect bluetooth after connection lost.
-    private boolean reconnect() {
+    private void reconnect() {
         if(device != null) {
-            boolean connected = this.connectToDevice(device, true, null);
-            if(connected && visualizer != null) {
-                visualizer.setEnabled(true);
+            boolean connected;
+            int attempted = 0;
+            BluetoothDevice reconnectionDevice = device;
+            do {
+                connected = this.connectToDevice(
+                        reconnectionDevice,
+                        true,
+                        Arrays.asList(reconnectionDevice.getUuids())
+                );
+
+                attempted++;
+                if(D) Log.d(TAG, "Device reconnection attempt " + String.valueOf(attempted));
+            } while(!connected && attempted < RECONNECTION_ATTEMPT);
+            if (connected) {
+                if(visualizer != null) {
+                    visualizer.setEnabled(true);
+                }
+                final Intent connectionReestablished = new Intent(CONNECTION_REESTABLISHED);
+                sendBroadcast(connectionReestablished);
+                handler.post(new Runnable() {
+                    public void run() {
+                        Toast.makeText(
+                                getApplicationContext(),
+                                getResources().getString(R.string.reconnection_successful),
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                });
+            } else {
+                if(visualizer != null) {
+                    visualizer.setEnabled(false);
+                }
+                handler.post(new Runnable() {
+                    public void run() {
+                        Toast.makeText(
+                                getApplicationContext(),
+                                getResources().getString(R.string.reconnection_failed),
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                });
             }
-            return true;
+
         }
-        return false;
     }
 
     // HACK visualizer initializer
@@ -321,41 +397,54 @@ public class MusicService extends Service {
 
                 @Override
                 public void onFftDataCapture(final Visualizer visualizer, final byte[] bytes, int samplingRate) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            if(socket != null) {
+                    if(socket != null) {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
                                 byte[] sendBytes = String.valueOf(bytes.length).getBytes();
                                 int bytesSent = 0;
                                 int chunkSize = 2;
                                 int remaining;
-                                while(bytesSent != sendBytes.length) {
+                                while (bytesSent != sendBytes.length) {
                                     remaining = sendBytes.length - bytesSent;
                                     try {
-                                        if(remaining >= chunkSize) {
-                                            socket.getOutputStream().write(sendBytes, bytesSent, chunkSize);
+                                        if (remaining >= chunkSize) {
+                                            if (socket != null && socket.getOutputStream() != null) {
+                                                socket.getOutputStream().write(sendBytes, bytesSent, chunkSize);
+                                            }
                                             bytesSent += chunkSize;
                                         } else {
-                                            socket.getOutputStream().write(sendBytes, bytesSent, remaining);
+                                            if (socket != null && socket.getOutputStream() != null) {
+                                                socket.getOutputStream().write(sendBytes, bytesSent, remaining);
+                                            }
                                             bytesSent += remaining;
                                         }
                                     } catch (IOException e) {
-                                        if(tryReconnection) {
-                                            Log.d(TAG, "critical zone entered");
+                                        if (tryReconnection) {
                                             tryReconnection = false;
-                                            if(visualizer !=  null) {
+                                            isConnected = false;
+                                            final Intent connectionInterrupted = new Intent(CONNECTION_INTERRUPTED);
+                                            sendBroadcast(connectionInterrupted);
+                                            if (D) Log.d(TAG, "critical zone entered");
+                                            handler.post(new Runnable() {
+                                                public void run() {
+                                                    Toast.makeText(
+                                                            getApplicationContext(),
+                                                            getResources().getString(R.string.connection_interrupted),
+                                                            Toast.LENGTH_SHORT
+                                                    ).show();
+                                                }
+                                            });
+                                            if (visualizer != null) {
                                                 visualizer.setEnabled(false);
                                             }
-                                            boolean connected = MusicService.this.reconnect();
-                                            Log.d(TAG, "Reconnected: " + String.valueOf(connected));
-                                            tryReconnection = true;
-
+                                            MusicService.this.reconnect();
                                         }
                                     }
                                 }
                             }
-                        }
-                    }).start();
+                        }).start();
+                    }
                 }
             };
             visualizer.setDataCaptureListener(captureListener,
@@ -450,6 +539,7 @@ public class MusicService extends Service {
         mPlayer.setHandler(mPlayerHandler);
 
         // HACK bind MediaPlayer with a visualizer to get audio session for fft data extraction.
+        this.handler = new Handler();
         try {
             initializeVisualizer();
         } catch(RuntimeException e) {
@@ -469,6 +559,11 @@ public class MusicService extends Service {
         filter.addAction(SHUFFLE_ACTION);
         // Attach the broadcast listener
         registerReceiver(mIntentReceiver, filter);
+
+        // HACK bluetooth state change filter and broadcast register.
+        final IntentFilter bluetoothFilter = new IntentFilter();
+        bluetoothFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(bluetoothStateReceiver, bluetoothFilter);
 
         mMediaStoreObserver = new MediaStoreObserver(mPlayerHandler);
         getContentResolver().registerContentObserver(
@@ -571,6 +666,9 @@ public class MusicService extends Service {
             unregisterReceiver(mUnmountReceiver);
             mUnmountReceiver = null;
         }
+
+        // HACK unregister bluetooth receiver.
+        unregisterReceiver(bluetoothStateReceiver);
 
         mWakeLock.release();
     }
@@ -2874,6 +2972,16 @@ public class MusicService extends Service {
         @Override
         public void enableVisualizer(boolean enable) {
             mService.get().enableVisualizer(enable);
+        }
+
+        @Override
+        public String getConnectedDeviceName() {
+            return mService.get().getConnectedDeviceName();
+        }
+
+        @Override
+        public void enableReconnect(boolean enable) {
+            mService.get().enableReconnect(enable);
         }
 
     }

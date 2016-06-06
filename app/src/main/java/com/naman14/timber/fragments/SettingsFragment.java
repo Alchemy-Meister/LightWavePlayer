@@ -26,6 +26,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -39,6 +40,7 @@ import com.afollestad.appthemeengine.Config;
 import com.afollestad.appthemeengine.prefs.ATECheckBoxPreference;
 import com.afollestad.appthemeengine.prefs.ATEColorPreference;
 import com.afollestad.materialdialogs.color.ColorChooserDialog;
+import com.naman14.timber.MusicService;
 import com.naman14.timber.R;
 import com.naman14.timber.activities.SettingsActivity;
 import com.naman14.timber.permissions.Nammu;
@@ -48,6 +50,8 @@ import com.naman14.timber.utils.NavigationUtils;
 import com.naman14.timber.utils.PreferencesUtility;
 import com.naman14.timber.utils.TimberUtils;
 import com.naman14.timber.widgets.BluetoothListPreference;
+
+import static com.naman14.timber.MusicPlayer.mService;
 
 public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -60,7 +64,6 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     private static final String KEY_START_PAGE = "start_page_preference";
     private static final String KEY_ENABLE_BLUETOOTH = "enable_bluetooth";
     private static final String KEY_BLUETOOTH_DEVICE = "bluetooth_mac";
-    private static final String KEY_BLUETOOTH_SUMMARY = "bluetooth_summary";
     private static final int REQUEST_AUDIO_RECORD = 123;
     Preference nowPlayingSelector;
     SwitchPreference toggleAnimations;
@@ -69,7 +72,6 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     BluetoothListPreference bluetoothDevicePreference;
     PreferencesUtility mPreferences;
     private String mAteKey;
-    private String summary = null;
 
     private IntentFilter iFilter = new IntentFilter();
     private BroadcastReceiver mReceiver;
@@ -82,16 +84,11 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if(savedInstanceState != null) {
-            summary = savedInstanceState.getString(KEY_BLUETOOTH_SUMMARY);
-        }
-
         addPreferencesFromResource(R.xml.preferences);
 
         iFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-        iFilter.addAction(BluetoothDevice.ACTION_FOUND);
-        iFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        iFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        iFilter.addAction(MusicService.CONNECTION_INTERRUPTED);
+        iFilter.addAction(MusicService.CONNECTION_REESTABLISHED);
 
         mReceiver = new BroadcastReceiver() {
             public void onReceive (Context context, Intent intent) {
@@ -99,13 +96,23 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                 if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                     switch(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1)) {
                         case BluetoothAdapter.STATE_ON:
+                            bluetoothPreference.setChecked(true);
+                            bluetoothDevicePreference.setEnabled(true);
                             preferenceUpdateTask();
                             break;
                         case BluetoothAdapter.STATE_OFF:
+                            bluetoothPreference.setChecked(false);
+                            bluetoothDevicePreference.setEnabled(false);
                             bluetoothDevicePreference.showProgressBar();
                             bluetoothDevicePreference.emptyDeviceList();
-                            break;
+                            bluetoothDevicePreference.setSummary(
+                                    getActivity().getResources().getString(R.string.no_receiver_connected));
                     }
+                } else if(MusicService.CONNECTION_INTERRUPTED.equals(action)) {
+                    bluetoothDevicePreference.setSummary(
+                            getActivity().getResources().getString(R.string.no_receiver_connected));
+                } else if(MusicService.CONNECTION_REESTABLISHED.equals(action)) {
+                    updateDeviceSummaryName();
                 }
             }
 
@@ -242,23 +249,28 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
             }
         });
 
-        if(summary != null) {
-            bluetoothDevicePreference.setSummary(summary);
-        }
-
         if(isBluetoothEnabled()) {
+            updateDeviceSummaryName();
             preferenceUpdateTask();
         }
 
         bluetoothPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(Preference preference, Object newValue) {
-                setBluetoothStatus((boolean) newValue);
                 if((boolean) newValue) {
                     bluetoothDevicePreference.setEnabled(true);
                 } else {
                     bluetoothDevicePreference.setEnabled(false);
+                    bluetoothDevicePreference.setSummary(
+                            getActivity().getResources().getString(R.string.no_receiver_connected));
+
+                    if(mService != null) {
+                        try {
+                            mService.enableReconnect(false);
+                        } catch(RemoteException ignored) {}
+                    }
                 }
+                setBluetoothStatus((boolean) newValue);
                 return true;
             }
         });
@@ -311,12 +323,26 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
             enableDevice = true;
         }
         updateBluetoothPreferences();
+
     }
 
     @Override
     public void onPause() {
         super.onPause();
         this.getActivity().unregisterReceiver(mReceiver);
+    }
+
+    private void updateDeviceSummaryName() {
+        if(mService != null) {
+            String deviceName = null;
+            try {
+                deviceName = mService.getConnectedDeviceName();
+            } catch(RemoteException ignored) {}
+            if(deviceName != null && bluetoothDevicePreference != null) {
+                bluetoothDevicePreference.setSummary(
+                        getActivity().getResources().getString(R.string.connected_to, deviceName));
+            }
+        }
     }
 
     private void preferenceUpdateTask() {
@@ -340,12 +366,6 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
             }
         };
         updateTask.execute();
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putString(KEY_BLUETOOTH_SUMMARY, bluetoothDevicePreference.getSummary().toString());
     }
 
     @Override
