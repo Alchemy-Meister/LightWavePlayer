@@ -81,6 +81,8 @@ import com.nostra13.universalimageloader.core.ImageLoader;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -248,13 +250,19 @@ public class MusicService extends Service {
     public static final String CONNECTION_INTERRUPTED = "com.naman14.timber.connectionInterrupted";
     public static final String CONNECTION_REESTABLISHED = "com.naman14.timber.connectionEstablished";
     private static final int RECONNECTION_ATTEMPT = 5;
+    private static final int LED_NUMBER = 48;
+    private static final int TIME_BETWEEN_BLUETOOTH_WRITE = 47;
 
     private Thread bluetoothConnectionChecker = null;
     private BluetoothDevice device;
     private volatile boolean tryReconnection = true;
     private volatile boolean cancelReconnect = false;
     private volatile boolean isConnected = false;
+    private volatile long lastBluetoothWriteExecution = 0;
     private volatile BluetoothConnector.BluetoothSocketWrapper socket;
+    private Visualizer visualizer;
+    private Handler handler;
+
     private BroadcastReceiver bluetoothStateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -269,9 +277,6 @@ public class MusicService extends Service {
             }
         }
     };
-
-    private Visualizer visualizer;
-    private Handler handler;
 
     // HACK checks if bluetooth device is already connected.
     public boolean isDeviceConnected(String address) {
@@ -351,18 +356,23 @@ public class MusicService extends Service {
             int attempted = 0;
             BluetoothDevice reconnectionDevice = device;
             do {
-                connected = this.connectToDevice(
-                        reconnectionDevice,
-                        true,
-                        Arrays.asList(reconnectionDevice.getUuids())
-                );
-
+                try {
+                    connected = this.connectToDevice(
+                            reconnectionDevice,
+                            true,
+                            Arrays.asList(reconnectionDevice.getUuids())
+                    );
+                } catch(NullPointerException e) {
+                    connected = false;
+                    interruptReconnect(true);
+                }
                 attempted++;
                 if(D) Log.d(TAG, "Device reconnection attempt " + String.valueOf(attempted));
             } while(!connected && attempted < RECONNECTION_ATTEMPT && !cancelReconnect);
             if (connected) {
-                if(visualizer != null && visualizer.getEnabled()) {
+                if(visualizer != null && isPlaying()) {
                     visualizer.setEnabled(true);
+                    if(D) Log.d(TAG, "music player with device is on");
                 }
                 final Intent connectionReestablished = new Intent(CONNECTION_REESTABLISHED);
                 sendBroadcast(connectionReestablished);
@@ -411,59 +421,83 @@ public class MusicService extends Service {
                 }
 
                 @Override
-                public void onFftDataCapture(final Visualizer visualizer, final byte[] bytes, int samplingRate) {
-                    if(socket != null) {
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                byte[] sendBytes = String.valueOf(bytes.length).getBytes();
-                                int bytesSent = 0;
-                                int chunkSize = 2;
-                                int remaining;
-                                while (bytesSent != sendBytes.length) {
-                                    remaining = sendBytes.length - bytesSent;
-                                    try {
-                                        if (remaining >= chunkSize) {
-                                            if (socket != null && socket.getOutputStream() != null) {
-                                                socket.getOutputStream().write(sendBytes, bytesSent, chunkSize);
-                                            }
-                                            bytesSent += chunkSize;
-                                        } else {
-                                            if (socket != null && socket.getOutputStream() != null) {
-                                                socket.getOutputStream().write(sendBytes, bytesSent, remaining);
-                                            }
-                                            bytesSent += remaining;
+                public void onFftDataCapture(final Visualizer visualizer, final byte[] bytes, final int samplingRate) {
+                    if(System.currentTimeMillis() - lastBluetoothWriteExecution >= TIME_BETWEEN_BLUETOOTH_WRITE) {
+                        if (socket != null) {
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+
+                                    int nearestExponent;
+                                    int nDivisions;
+
+                                    nearestExponent = (int) (Math.log(LED_NUMBER) / Math.log(2) + 1);
+                                    nDivisions = bytes.length / (int) Math.pow(2, nearestExponent);
+
+                                    float maxAmplitude = 0;
+                                    float[] amplitudes = new float[bytes.length / nDivisions];
+
+                                    for (int i = 0; i < bytes.length / nDivisions; i++) {
+                                        float amplitude = (float) Math.sqrt(
+                                                Math.pow((float) bytes[i * nDivisions], 2) +
+                                                        Math.pow((float) bytes[i * nDivisions + 1], 2)
+                                        );
+
+                                        amplitudes[i] = amplitude;
+
+                                        if (amplitude > maxAmplitude) {
+                                            maxAmplitude = amplitude;
                                         }
-                                    } catch (IOException e) {
-                                        if (tryReconnection) {
-                                            tryReconnection = false;
-                                            isConnected = false;
-                                            final Intent connectionInterrupted = new Intent(CONNECTION_INTERRUPTED);
-                                            sendBroadcast(connectionInterrupted);
-                                            if (D) Log.d(TAG, "critical zone entered");
-                                            handler.post(new Runnable() {
-                                                public void run() {
-                                                    Toast.makeText(
-                                                            getApplicationContext(),
-                                                            getResources().getString(R.string.connection_interrupted),
-                                                            Toast.LENGTH_SHORT
-                                                    ).show();
-                                                }
-                                            });
-                                            if (visualizer != null) {
-                                                visualizer.setEnabled(false);
+                                    }
+
+                                    float amplitudeScaleForm;
+                                    if (maxAmplitude != 0) {
+                                        amplitudeScaleForm = 255 / maxAmplitude;
+                                    } else {
+                                        amplitudeScaleForm = 0;
+                                    }
+
+                                    for (int i = 0; i < LED_NUMBER; i++) {
+                                        byte[] sendBytes = (String.valueOf(
+                                                Math.round(amplitudes[i] * amplitudeScaleForm)
+                                        ) + "\n\n\n\n\n\n").getBytes();
+
+                                        try {
+                                            if (socket != null && socket.getOutputStream() != null) {
+                                                socket.getOutputStream().write(sendBytes);
+                                                lastBluetoothWriteExecution = System.currentTimeMillis();
                                             }
-                                            MusicService.this.reconnect();
+                                        } catch (IOException e) {
+                                            if (tryReconnection) {
+                                                tryReconnection = false;
+                                                isConnected = false;
+                                                final Intent connectionInterrupted = new Intent(CONNECTION_INTERRUPTED);
+                                                sendBroadcast(connectionInterrupted);
+                                                if (D) Log.d(TAG, "critical zone entered");
+                                                handler.post(new Runnable() {
+                                                    public void run() {
+                                                        Toast.makeText(
+                                                                getApplicationContext(),
+                                                                getResources().getString(R.string.connection_interrupted),
+                                                                Toast.LENGTH_SHORT
+                                                        ).show();
+                                                    }
+                                                });
+                                                if (visualizer != null) {
+                                                    visualizer.setEnabled(false);
+                                                }
+                                                MusicService.this.reconnect();
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        }).start();
+                            }).start();
+                        }
                     }
                 }
             };
             visualizer.setDataCaptureListener(captureListener,
-                    Visualizer.getMaxCaptureRate() / 2, false, true);
+                    Visualizer.getMaxCaptureRate(), false, true);
         }
         if(isPlaying() && socket != null) {
             visualizer.setEnabled(true);
@@ -485,7 +519,7 @@ public class MusicService extends Service {
                 while(!Thread.currentThread().isInterrupted()) {
                     try {
                         if (socket != null && socket.getOutputStream() != null) {
-                            socket.getOutputStream().write(Integer.valueOf(1024).byteValue());
+                            socket.getOutputStream().write(String.valueOf('\t').getBytes());
                         }
                     } catch (IOException e) {
                         isConnected = false;

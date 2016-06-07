@@ -16,7 +16,6 @@ package com.naman14.timber.fragments;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -97,10 +96,17 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                     switch(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1)) {
                         case BluetoothAdapter.STATE_ON:
                             bluetoothPreference.setChecked(true);
-                            bluetoothDevicePreference.setEnabled(true);
+                            if(RuntimePermissionsHelper.hasPermissions(getActivity(), Manifest.permission.RECORD_AUDIO)) {
+                                bluetoothDevicePreference.setEnabled(true);
+                            }
                             preferenceUpdateTask();
                             break;
                         case BluetoothAdapter.STATE_OFF:
+                            if(mService != null) {
+                                try {
+                                    mService.enableReconnect(false);
+                                } catch(RemoteException ignored) {}
+                            }
                             bluetoothPreference.setChecked(false);
                             bluetoothDevicePreference.setEnabled(false);
                             bluetoothDevicePreference.showProgressBar();
@@ -258,7 +264,9 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
             @Override
             public boolean onPreferenceChange(Preference preference, Object newValue) {
                 if((boolean) newValue) {
-                    bluetoothDevicePreference.setEnabled(true);
+                    if(RuntimePermissionsHelper.hasPermissions(getActivity(), Manifest.permission.RECORD_AUDIO)) {
+                        bluetoothDevicePreference.setEnabled(true);
+                    }
                 } else {
                     bluetoothDevicePreference.setEnabled(false);
                     bluetoothDevicePreference.setSummary(

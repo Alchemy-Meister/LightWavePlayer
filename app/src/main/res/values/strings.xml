@@ -132,7 +132,7 @@
     <string name="reconnection_failed" translatable="false">Reconnection failed</string>
     <string name="connection_interrupted" translatable="false">Device connection interrupted, trying to reconnect.</string>
     <string name="ok" translatable="false">Ok</string>
-    <string name="record_audio_permission_message" translatable="false">%1$s needs access record your music player audio to
+    <string name="record_audio_permission_message" translatable="false">%1$s needs to record your music player audio to
         send processed information to your Light wave device.</string>
 
 </resources>
